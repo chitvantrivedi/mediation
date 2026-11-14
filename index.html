@@ -1,0 +1,609 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Mediation Walkthrough</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: narration and live numbers on the left, path diagram plus plot on the right; the right column leads on phones. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --fg:#1b2230; --muted:#5b6578; --line:#d9dee7; --grid:#e8ecf2; --soft:#eef1f6;
+  --total:#5b6578; --pa:#0b8f85; --pb:#bf6510; --pd:#2d68d8; --pi:#7440c9; --ok:#1c8a4e; --no:#c23b2c; --dot:#4b566b;
+  --on-accent:#ffffff;
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --font-head:'Space Grotesk','Inter',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151b; --surface:#1b2029; --fg:#e9ecf2; --muted:#9aa4b8; --line:#2d3544; --grid:#262d39; --soft:#232a36;
+    --total:#9aa4b8; --pa:#3fc9bb; --pb:#f2a24f; --pd:#75a5ff; --pi:#b793ff; --ok:#52cd8c; --no:#ff8070; --dot:#a9b3c7;
+    --on-accent:#0b1220; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151b; --surface:#1b2029; --fg:#e9ecf2; --muted:#9aa4b8; --line:#2d3544; --grid:#262d39; --soft:#232a36;
+  --total:#9aa4b8; --pa:#3fc9bb; --pb:#f2a24f; --pd:#75a5ff; --pi:#b793ff; --ok:#52cd8c; --no:#ff8070; --dot:#a9b3c7;
+  --on-accent:#0b1220; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--fg); font-family:var(--font-body); font-size:15px; line-height:1.55;
+  padding-block:20px 40px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap{max-width:1120px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+h1{font-family:var(--font-head);font-size:28px;line-height:1.15;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-family:var(--font-head);font-size:20px;line-height:1.25;margin:0 0 8px;text-wrap:balance}
+p{margin:0 0 10px}
+.sub{color:var(--muted);margin:4px 0 0;max-width:62ch}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.controls{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+.controls label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.controls select{font:inherit;font-size:13px;color:var(--fg);background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:6px 8px;max-width:100%}
+.controls input[type=range]{width:120px;accent-color:var(--pd)}
+.controls output{color:var(--fg);font-variant-numeric:tabular-nums;min-width:2.5ch}
+.bar{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dot{width:32px;height:32px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);color:var(--muted);font:600 13px var(--font-body);cursor:pointer;padding:0}
+.dot:hover{border-color:var(--pd);color:var(--fg)}
+.dot.done{background:var(--soft);color:var(--fg)}
+.dot.on{background:var(--pd);border-color:var(--pd);color:var(--on-accent)}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.btn{font:600 14px var(--font-body);border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:9px;padding:8px 14px;cursor:pointer}
+.btn:hover{border-color:var(--pd)}
+.btn.primary{background:var(--pd);border-color:var(--pd);color:var(--on-accent)}
+.btn[disabled]{opacity:.45;cursor:default}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--pd);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;align-items:start}
+.right{display:flex;flex-direction:column;gap:14px;min-width:0;position:sticky;top:12px}
+.left{min-width:0}
+@media (max-width:860px){
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .right{order:-1;position:static}
+}
+svg#diagram{display:block;width:100%;height:auto;font-family:var(--font-body)}
+canvas#plot{display:block;width:100%}
+.cap{margin:8px 0 0;font-size:12.5px;color:var(--muted)}
+.ca{color:var(--pa);font-weight:600}.cb{color:var(--pb);font-weight:600}.cd{color:var(--pd);font-weight:600}.ci{color:var(--pi);font-weight:600}.ct{color:var(--total);font-weight:600}
+.small{font-size:13px;color:var(--muted)}
+.think{margin:12px 0 0;padding:10px 12px;border:1px dashed var(--line);border-radius:10px;background:var(--soft);font-size:14px}
+.stats{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.stat{display:flex;flex-wrap:wrap;gap:4px 10px;align-items:baseline;padding:8px 10px;border:1px solid var(--line);border-radius:10px}
+.stat .k{color:var(--muted);font-size:13px;min-width:7.5em}
+.stat .v{font-weight:600;font-variant-numeric:tabular-nums}
+.stat .s{color:var(--muted);font-size:12.5px;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.ok{color:var(--ok)}.pill.no{color:var(--no)}.pill.nt{color:var(--muted)}
+.live{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--soft);font-size:13.5px;font-variant-numeric:tabular-nums;min-height:3.4em}
+.check{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.check li{display:flex;gap:10px;align-items:baseline;padding:8px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px}
+.check .g{font-weight:700;width:1.2em;flex:none;text-align:center}
+.check .g.y{color:var(--ok)}.check .g.n{color:var(--no)}.check .g.i{color:var(--muted)}
+.verdict{margin-top:12px;padding:12px 14px;border-radius:10px;border:1.5px solid var(--pi);background:var(--soft)}
+.verdict b{font-family:var(--font-head);font-size:17px;display:block;margin-bottom:4px}
+.warn{margin-top:8px;font-size:13.5px;color:var(--no)}
+.foot{font-size:12.5px;color:var(--muted);max-width:80ch}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+</style>
+
+<main class="wrap">
+  <header>
+    <h1>Mediation, step by step</h1>
+    <p class="sub">A simulated study you can walk through. Press Next, or Play to let it run. Change the scenario to see how each result looks.</p>
+  </header>
+
+  <section class="card controls" aria-label="Simulation settings">
+    <label for="scenario">Scenario
+      <select id="scenario">
+        <option value="partial">Partial mediation</option>
+        <option value="full">Full mediation</option>
+        <option value="direct">No mediation (direct effect only)</option>
+        <option value="supp">Suppression (opposing paths)</option>
+        <option value="none">Nothing going on</option>
+      </select>
+    </label>
+    <label for="n">Sample size
+      <input type="range" id="n" min="40" max="400" step="10" value="150"><output id="nOut" for="n">150</output>
+    </label>
+    <button class="btn" id="newSample" type="button">New sample</button>
+    <label for="reveal"><input type="checkbox" id="reveal"> Reveal the true model</label>
+  </section>
+
+  <section class="bar" aria-label="Step navigation">
+    <div class="dots" id="dots"></div>
+    <div class="btns">
+      <button class="btn" id="prev" type="button">Back</button>
+      <button class="btn" id="replay" type="button">Replay</button>
+      <button class="btn" id="play" type="button">Play</button>
+      <button class="btn primary" id="next" type="button">Next</button>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card left" aria-live="polite">
+      <h2 id="stepTitle"></h2>
+      <div id="stepText"></div>
+      <div id="think" class="think" hidden></div>
+      <div id="numbers"></div>
+    </div>
+    <div class="right">
+      <div class="card"><svg id="diagram" viewBox="0 0 420 240" role="img" aria-label="Path diagram with X, M and Y"></svg></div>
+      <div class="card" id="plotCard"><canvas id="plot" role="img" aria-label="Animated plot for the current step"></canvas><p class="cap" id="plotCap"></p></div>
+    </div>
+  </section>
+
+  <p class="foot">All data are simulated from the scenario you pick, with unstandardized effects and noise of 1. The bootstrap here is the percentile method with 5,000 resamples. A significant indirect effect is statistical evidence; calling it causal also requires the right design (X before M before Y, no unmeasured confounding of M and Y).</p>
+</main>
+
+<script>
+(function(){
+'use strict';
+var $=function(s){return document.querySelector(s)};
+var reduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var SC={
+  partial:{name:'Partial mediation',a:.5,b:.4,cp:.25},
+  full:{name:'Full mediation',a:.5,b:.5,cp:0},
+  direct:{name:'No mediation (direct effect only)',a:.5,b:0,cp:.4},
+  supp:{name:'Suppression (opposing paths)',a:.5,b:.5,cp:-.3},
+  none:{name:'Nothing going on',a:0,b:0,cp:0}
+};
+var TITLES=['The question','Collect the data','Step 1 · Total effect (c)','Step 2 · Path a','Step 3 · Path b and direct effect (c′)','Step 4 · Split the total effect','Step 5 · Bootstrap the indirect effect','Step 6 · Decide','Step 7 · Repeat the whole study'];
+var DUR=[0,2400,2200,2200,2800,2200,9500,1400,0];
+var NB=5000, NS=100, NSB=500;
+var state={scn:'partial',n:150,seed:11,step:0,data:null,an:null,boot:null,rep:null,playing:false};
+
+/* ---------- random numbers ---------- */
+function rng(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function normal(r){var u=0,v;while(!u)u=r();v=r();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+
+/* ---------- statistics ---------- */
+function sums(X,M,Y,idx){
+  var n=idx?idx.length:X.length,mx=0,mm=0,my=0,k,i;
+  for(k=0;k<n;k++){i=idx?idx[k]:k;mx+=X[i];mm+=M[i];my+=Y[i]}
+  mx/=n;mm/=n;my/=n;
+  var Sxx=0,Smm=0,Syy=0,Sxm=0,Sxy=0,Smy=0,x,m,y;
+  for(k=0;k<n;k++){i=idx?idx[k]:k;x=X[i]-mx;m=M[i]-mm;y=Y[i]-my;Sxx+=x*x;Smm+=m*m;Syy+=y*y;Sxm+=x*m;Sxy+=x*y;Smy+=m*y}
+  return {n:n,Sxx:Sxx,Smm:Smm,Syy:Syy,Sxm:Sxm,Sxy:Sxy,Smy:Smy,mx:mx,mm:mm,my:my};
+}
+function coefs(S){
+  var det=S.Sxx*S.Smm-S.Sxm*S.Sxm;
+  return {a:S.Sxm/S.Sxx,c:S.Sxy/S.Sxx,cp:(S.Smm*S.Sxy-S.Sxm*S.Smy)/det,b:(S.Sxx*S.Smy-S.Sxm*S.Sxy)/det,det:det};
+}
+function tcrit(df){var z=1.959964;return z+(Math.pow(z,3)+z)/(4*df)+(5*Math.pow(z,5)+16*Math.pow(z,3)+3*z)/(96*df*df)}
+function analyze(X,M,Y){
+  var S=sums(X,M,Y),k=coefs(S),n=S.n;
+  var seA=Math.sqrt((S.Smm-k.a*S.Sxm)/(n-2)/S.Sxx);
+  var seC=Math.sqrt((S.Syy-k.c*S.Sxy)/(n-2)/S.Sxx);
+  var s2=(S.Syy-k.cp*S.Sxy-k.b*S.Smy)/(n-3);
+  var seCp=Math.sqrt(s2*S.Smm/k.det),seB=Math.sqrt(s2*S.Sxx/k.det);
+  var c2=tcrit(n-2),c3=tcrit(n-3);
+  var an={S:S,n:n,a:k.a,b:k.b,c:k.c,cp:k.cp,ind:k.a*k.b,
+    ta:k.a/seA,tb:k.b/seB,tc:k.c/seC,tcp:k.cp/seCp};
+  an.sigA=Math.abs(an.ta)>c2;an.sigB=Math.abs(an.tb)>c3;an.sigC=Math.abs(an.tc)>c2;an.sigCp=Math.abs(an.tcp)>c3;
+  return an;
+}
+function quant(sorted,p){var pos=p*(sorted.length-1),lo=Math.floor(pos),hi=Math.ceil(pos);return sorted[lo]+(sorted[hi]-sorted[lo])*(pos-lo)}
+
+/* ---------- data generation ---------- */
+function makeData(seed,n,s){
+  var r=rng(seed),X=new Float64Array(n),M=new Float64Array(n),Y=new Float64Array(n);
+  for(var i=0;i<n;i++){X[i]=normal(r);M[i]=s.a*X[i]+normal(r);Y[i]=s.cp*X[i]+s.b*M[i]+normal(r)}
+  return {X:X,M:M,Y:Y};
+}
+function span(arr){var lo=Infinity,hi=-Infinity;for(var i=0;i<arr.length;i++){if(arr[i]<lo)lo=arr[i];if(arr[i]>hi)hi=arr[i]}var p=(hi-lo)*.06;return [lo-p,hi+p]}
+function generate(){
+  var s=SC[state.scn];
+  state.data=makeData(state.seed,state.n,s);
+  var d=state.data,an=analyze(d.X,d.M,d.Y);state.an=an;
+  var n=an.n,S=an.S,ry=new Float64Array(n),rm=new Float64Array(n);
+  for(var i=0;i<n;i++){ry[i]=(d.Y[i]-S.my)-an.c*(d.X[i]-S.mx);rm[i]=(d.M[i]-S.mm)-an.a*(d.X[i]-S.mx)}
+  state.res={ry:ry,rm:rm,rX:span(d.X),rM:span(d.M),rY:span(d.Y),rRy:span(ry),rRm:span(rm)};
+  state.boot=null;state.rep=null;state.repTok=(state.repTok||0)+1;
+}
+function runBoot(){
+  var d=state.data,n=state.n,r=rng(state.seed*7+13),idx=new Int32Array(n);
+  var ind=new Float64Array(NB),as=new Float64Array(NB),bs=new Float64Array(NB),S,k,i,j;
+  for(j=0;j<NB;j++){
+    for(i=0;i<n;i++)idx[i]=(r()*n)|0;
+    S=sums(d.X,d.M,d.Y,idx);k=coefs(S);as[j]=k.a;bs[j]=k.b;ind[j]=k.a*k.b;
+  }
+  var lo=Infinity,hi=-Infinity;
+  for(j=0;j<NB;j++){if(ind[j]<lo)lo=ind[j];if(ind[j]>hi)hi=ind[j]}
+  lo=Math.min(lo,0);hi=Math.max(hi,0);var pad=(hi-lo)*.06;lo-=pad;hi+=pad;
+  var nb=40,counts=new Int32Array(nb),mx=0;
+  for(j=0;j<NB;j++)counts[Math.min(nb-1,Math.floor((ind[j]-lo)/(hi-lo)*nb))]++;
+  for(j=0;j<nb;j++)if(counts[j]>mx)mx=counts[j];
+  var sorted=Float64Array.from(ind).sort();
+  state.boot={ind:ind,as:as,bs:bs,lo:lo,hi:hi,nb:nb,max:mx*1.1};
+  state.ci=[quant(sorted,.025),quant(sorted,.975)];
+}
+
+/* ---------- formatting ---------- */
+function fmt(v,d){d=d==null?2:d;var s=Math.abs(v).toFixed(d);return (v<0&&+s!==0?'−':'')+s}
+function sigPill(sig){return sig?'<span class="pill ok">significant</span>':'<span class="pill no">not significant</span>'}
+function row(k,v,s){return '<div class="stat"><span class="k">'+k+'</span><span class="v">'+v+'</span>'+(s?'<span class="s">'+s+'</span>':'')+'</div>'}
+function tk(v){return String(+v.toFixed(2))}
+function ticks(lo,hi,n){
+  var span=hi-lo,raw=span/n,p=Math.pow(10,Math.floor(Math.log10(raw))),f=raw/p,st=(f<1.5?1:f<3?2:f<7?5:10)*p,out=[];
+  for(var v=Math.ceil(lo/st)*st;v<=hi+1e-9;v+=st)out.push(+v.toFixed(10));
+  return out;
+}
+function classify(){
+  var an=state.an,lo=state.ci[0],hi=state.ci[1],excl=lo>0||hi<0;
+  if(!excl){
+    return an.sigCp?
+      {label:'No mediation: direct effect only',why:'The interval for a×b includes 0, so there is no evidence of an indirect route. X still affects Y directly (c′ is significant).'}:
+      {label:'No evidence of mediation',why:'The interval for a×b includes 0 and c′ is not significant. Either nothing is going on, or the sample is too small to tell.'};
+  }
+  if(!an.sigCp)return {label:'Full mediation (consistent with)',why:'The interval for a×b excludes 0 and c′ is no longer significant, so no direct effect is detectable once M is in the model. Not significant is not proof of zero.'};
+  if(Math.sign(an.cp)===Math.sign(an.ind))return {label:'Partial mediation',why:'The interval for a×b excludes 0 and c′ is still significant with the same sign. Part of X’s effect runs through M and part does not.'};
+  return {label:'Inconsistent mediation (suppression)',why:'The interval for a×b excludes 0 but c′ is significant with the opposite sign. The two routes work against each other, so the total effect c can look small even though both matter.'};
+}
+
+/* ---------- narration ---------- */
+function textFor(st){
+  var an=state.an,s=SC[state.scn],n=state.n;
+  switch(st){
+  case 0:return '<p>Suppose we think <b>studying longer (X)</b> raises <b>exam scores (Y)</b> because it builds <b>understanding (M)</b>. That is a claim about a <em>route</em>: X → M → Y.</p>'+
+    '<p>There are two ways X can reach Y: the <b>indirect route</b> through M (paths <span class="ca">a</span> and <span class="cb">b</span>) and the <b>direct route</b> <span class="cd">c′</span> that skips M. Mediation asks whether the indirect route carries a real share of the effect.</p>'+
+    '<p class="small">The labels are only a story. Every number is simulated, so we know the true answer and can check whether the method finds it.</p>';
+  case 1:return '<p>We simulated <b>'+n+' people</b> from the scenario “'+s.name+'”. Each dot is one person’s study time and exam score.</p>'+
+    '<p>A pattern may be visible, but a scatterplot cannot tell us <em>why</em> X and Y go together. The next steps separate the two routes.</p>';
+  case 2:return '<p>First, ignore M. Fit a line predicting Y from X. Its slope is the <b>total effect, <span class="ct">c</span></b>: how much Y changes when X goes up by one unit, by any route.</p>'+
+    '<p class="small">A significant c is not required to continue. It is just the starting point.</p>';
+  case 3:return '<p>Now check the first link. Fit a line predicting M from X. The slope is <b>path <span class="ca">a</span></b>: does X change M at all?</p>'+
+    '<p>If a is near zero, the indirect route is closed no matter what happens next.</p>';
+  case 4:return '<p>Now predict Y from X <em>and</em> M together. That gives two numbers at once: <b><span class="cb">b</span></b>, the effect of M on Y with X held fixed, and <b><span class="cd">c′</span></b>, the effect of X on Y with M held fixed (the direct effect).</p>'+
+    '<p>The plot shows what is left of M and of Y after removing X’s influence from both. Its slope is b.</p>';
+  case 5:return '<p>The total effect splits into two parts: <b>c = c′ + a×b</b>.</p>'+
+    '<p>Multiplying the two links gives the <b class="ci">indirect effect</b>: a × b = '+fmt(an.a)+' × '+fmt(an.b)+' = <b>'+fmt(an.ind,3)+'</b>. The drop from c to c′ is '+fmt(an.c-an.cp,3)+', the same number.</p>'+
+    '<p>So the drop in beta <em>is</em> the indirect effect. The open question is whether it is bigger than chance.</p>';
+  case 6:return '<p>a×b has no tidy formula for its uncertainty, so we <b>bootstrap</b>. Draw '+n+' people <em>with replacement</em> from our sample, recompute a×b, and repeat '+NB.toLocaleString()+' times. The spread of those values shows how much a×b would wobble from sample to sample.</p>'+
+    '<p>Watch the histogram build. The solid bars are the middle 95%, the percentile interval.</p>';
+  case 7:return '<p>The rule: <b>the indirect effect is supported if the 95% interval for a×b excludes 0.</b> Then c′ tells us the type.</p>';
+  case 8:return '<p>Everything so far came from <em>one</em> sample. Here we repeat the whole study '+NS+' times with fresh samples ('+NSB+' resamples each, to keep it quick).</p>'+
+    '<p class="small">Try the sample size slider above and run again: smaller samples give wider, less reliable intervals.</p>';
+  }
+  return '';
+}
+function thinkFor(st){
+  return ['Which arrows make up the indirect route?',
+    'Does a visible relationship between X and Y prove that M is involved?',
+    'Can c be large while the indirect effect is zero?',
+    'If a were 0, what would a×b be?',
+    'c is X’s effect ignoring M. c′ is X’s effect with M accounted for. What should the gap between them equal?',
+    'If the drop is just a×b, how do we know it is more than noise?',
+    '',
+    'Suppose one path is only borderline. How confident would you be in the conclusion?',
+    ''][st];
+}
+function numbersFor(st){
+  var an=state.an,h='<div class="stats">';
+  if(st===1)h+=row('Sample size',an.n);
+  if(st===2)h+=row('Total effect c',fmt(an.c,3),'t = '+fmt(an.tc,1))+row('Is c significant?',sigPill(an.sigC));
+  if(st===3)h+=row('Path a',fmt(an.a,3),'t = '+fmt(an.ta,1))+row('Is a significant?',sigPill(an.sigA));
+  if(st===4)h+=row('Path b',fmt(an.b,3),'t = '+fmt(an.tb,1))+row('Is b significant?',sigPill(an.sigB))+
+    row('Direct effect c′',fmt(an.cp,3),'t = '+fmt(an.tcp,1))+row('Is c′ significant?',sigPill(an.sigCp))+
+    row('From c to c′',fmt(an.c,3)+' → '+fmt(an.cp,3));
+  if(st===5)h+=row('Indirect a×b',fmt(an.ind,3))+row('Drop c − c′',fmt(an.c-an.cp,3))+row('Direct c′',fmt(an.cp,3));
+  if(st===6)return '<div class="live" id="live"></div>';
+  if(st===7){
+    var cl=classify(),lo=state.ci[0],hi=state.ci[1],excl=lo>0||hi<0;
+    var li=function(cls,g,t){return '<li><span class="g '+cls+'">'+g+'</span><span>'+t+'</span></li>'};
+    h='<ul class="check">'+
+      li(an.sigA?'y':'n',an.sigA?'✓':'✗','Path a is supported: a = '+fmt(an.a)+', t = '+fmt(an.ta,1))+
+      li(an.sigB?'y':'n',an.sigB?'✓':'✗','Path b is supported: b = '+fmt(an.b)+', t = '+fmt(an.tb,1))+
+      li(excl?'y':'n',excl?'✓':'✗','95% interval for a×b is ['+fmt(lo,3)+', '+fmt(hi,3)+'], which '+(excl?'excludes':'includes')+' 0')+
+      li('i','•','Direct effect c′ = '+fmt(an.cp)+' is '+(an.sigCp?'significant':'not significant')+' (this sets the type, not whether mediation occurred)')+
+      '</ul><div class="verdict"><b>'+cl.label+'</b>'+cl.why+'</div>';
+    if(excl&&(!an.sigA||!an.sigB))h+='<div class="warn">One path is not significant by itself. Treat this conclusion as tentative.</div>';
+    if($('#reveal').checked){var s=SC[state.scn];h+='<p class="small" style="margin-top:10px">True model: a = '+fmt(s.a)+', b = '+fmt(s.b)+', c′ = '+fmt(s.cp)+', so the true indirect effect is '+fmt(s.a*s.b,3)+'.</p>'}
+    return h;
+  }
+  if(st===8)return '<div id="repStats"></div><div class="btns" style="margin-top:10px"><button class="btn" id="runAgain" type="button">Run '+NS+' new studies</button></div>';
+  return st===0?'':h+'</div>';
+}
+function repHTML(){
+  var r=state.rep;if(!r)return '';
+  var k=r.res.length,ex=0,i;for(i=0;i<k;i++)if(r.res[i].ex)ex++;
+  var s=SC[state.scn],ti=s.a*s.b,h='<div class="stats">'+row('Studies run',k+' of '+NS)+row('Interval excludes 0',ex+' of '+k,k?Math.round(100*ex/k)+'%':'')+row('True a×b',fmt(ti,3))+'</div>';
+  if(k>=NS){
+    h+= ti!==0?
+      '<p style="margin-top:10px">The indirect effect is real here, so the share of intervals that exclude 0 is the method’s <b>power</b> at this sample size. It falls as the sample gets smaller.</p>':
+      '<p style="margin-top:10px">There is no indirect effect here, so any interval that excludes 0 is a <b>false positive</b>. With a 95% interval, expect about 5% or fewer.</p>';
+  }
+  return h;
+}
+
+/* ---------- diagram ---------- */
+function arrow(x1,y1,x2,y2,color,w,op){
+  var ang=Math.atan2(y2-y1,x2-x1),hl=11+w,hw=5+w*.6,bx=x2-Math.cos(ang)*hl,by=y2-Math.sin(ang)*hl,nx=Math.cos(ang+Math.PI/2)*hw,ny=Math.sin(ang+Math.PI/2)*hw;
+  return '<g opacity="'+op+'"><line x1="'+x1+'" y1="'+y1+'" x2="'+bx.toFixed(1)+'" y2="'+by.toFixed(1)+'" stroke="'+color+'" stroke-width="'+w.toFixed(1)+'" stroke-linecap="round"/><polygon points="'+x2+','+y2+' '+(bx+nx).toFixed(1)+','+(by+ny).toFixed(1)+' '+(bx-nx).toFixed(1)+','+(by-ny).toFixed(1)+'" fill="'+color+'"/></g>';
+}
+function lab(x,y,t,color,size,weight,anchor,op){
+  return '<text x="'+x+'" y="'+y+'" text-anchor="'+(anchor||'middle')+'" font-size="'+(size||14)+'" font-weight="'+(weight||600)+'" fill="'+color+'" opacity="'+(op==null?1:op)+'" style="paint-order:stroke;stroke:var(--surface);stroke-width:5px;stroke-linejoin:round">'+t+'</text>';
+}
+function node(cx,cy,letter,name,op){
+  return '<g opacity="'+op+'"><rect x="'+(cx-60)+'" y="'+(cy-23)+'" width="120" height="46" rx="10" fill="var(--surface)" stroke="var(--line)" stroke-width="1.5"/>'+
+    '<text x="'+cx+'" y="'+(cy-3)+'" text-anchor="middle" font-size="16" font-weight="700" fill="var(--fg)" style="font-family:var(--font-head)">'+letter+'</text>'+
+    '<text x="'+cx+'" y="'+(cy+14)+'" text-anchor="middle" font-size="11.5" fill="var(--muted)">'+name+'</text></g>';
+}
+function drawDiagram(){
+  var st=state.step,an=state.an,s=SC[state.scn],rev=$('#reveal').checked,g='';
+  var W=function(v,show){return show?2.5+5*Math.min(1,Math.abs(v)/.6):3};
+  var tr=function(t){return rev?lab(0,0,'',''): ''};
+  // direct
+  var dOp=st<=1?.9:st===2||st===4?1:st===3?.4:.65;
+  var dCol=st>=4?'var(--pd)':st>=2?'var(--total)':'var(--muted)';
+  var dVal=st>=4?an.cp:an.c;
+  g+=arrow(135,190,285,190,dCol,W(dVal,st>=2),dOp);
+  // a
+  var aOp=st<=1?.9:st===2?.25:st===3?1:st===4?.55:.9;
+  g+=arrow(100,167,182,70,st>=3?'var(--pa)':'var(--muted)',W(an.a,st>=3),aOp);
+  // b
+  var bOp=st<=1?.9:st<=3?.25:st===4?1:.9;
+  g+=arrow(238,70,320,167,st>=4?'var(--pb)':'var(--muted)',W(an.b,st>=4),bOp);
+  // labels
+  if(st<=1){g+=lab(210,181,'c′','var(--muted)',15,600);g+=lab(126,116,'a','var(--muted)',15,600,'end');g+=lab(294,116,'b','var(--muted)',15,600,'start')}
+  else{
+    if(st<=3)g+=lab(210,181,'c = '+fmt(an.c),'var(--total)',14,600,'middle',st===2?1:.6);
+    else{g+=lab(210,181,'c′ = '+fmt(an.cp),'var(--pd)',14,600);g+=lab(210,212,'c was '+fmt(an.c),'var(--muted)',11.5,500)}
+    g+=lab(126,116,st>=3?'a = '+fmt(an.a):'a',st>=3?'var(--pa)':'var(--muted)',14,600,'end',st===2?.35:1);
+    g+=lab(294,116,st>=4?'b = '+fmt(an.b):'b',st>=4?'var(--pb)':'var(--muted)',14,600,'start',st<=3?.35:1);
+  }
+  if(st>=5){g+=lab(210,128,'a×b = '+fmt(an.ind,3),'var(--pi)',15,700);g+=lab(210,144,'indirect effect','var(--muted)',11.5,500)}
+  if(rev){
+    var t=function(x,y,v,anc){return lab(x,y,'true '+fmt(v),'var(--muted)',11,500,anc,.95)};
+    g+=t(126,131,s.a,'end')+t(294,131,s.b,'start')+t(210,st>=4?226:198,s.cp,'middle');
+    if(st>=5)g+=lab(210,160,'true '+fmt(s.a*s.b,3),'var(--muted)',11,500);
+  }
+  g+=node(75,190,'X','Study time',1)+node(210,45,'M','Understanding',st===2?.45:1)+node(345,190,'Y','Exam score',1);
+  $('#diagram').innerHTML=g;
+}
+
+/* ---------- plotting ---------- */
+var cv=$('#plot'),ctx=cv.getContext('2d'),dim={w:600,h:340},col={},FONT='sans-serif';
+function readColors(){
+  var cs=getComputedStyle(document.documentElement),g=function(n){return cs.getPropertyValue(n).trim()};
+  col={surface:g('--surface'),fg:g('--fg'),muted:g('--muted'),line:g('--line'),grid:g('--grid'),total:g('--total'),a:g('--pa'),b:g('--pb'),d:g('--pd'),i:g('--pi'),ok:g('--ok'),no:g('--no'),dot:g('--dot')};
+  FONT=getComputedStyle(document.body).fontFamily;
+}
+function fit(){
+  var dpr=window.devicePixelRatio||1,w=cv.clientWidth||600,h=Math.round(Math.max(250,Math.min(w*.62,370)));
+  cv.style.height=h+'px';cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);dim={w:w,h:h};
+}
+function frame(xr,yr,xl,yl,o){
+  o=o||{};var m={l:o.noY?16:50,r:14,t:14,b:44},W=dim.w-m.l-m.r,H=dim.h-m.t-m.b;
+  var sx=function(v){return m.l+(v-xr[0])/(xr[1]-xr[0])*W},sy=function(v){return m.t+H-(v-yr[0])/(yr[1]-yr[0])*H};
+  ctx.lineWidth=1;ctx.font='11px '+FONT;ctx.fillStyle=col.muted;ctx.strokeStyle=col.grid;
+  ticks(xr[0],xr[1],6).forEach(function(v){ctx.beginPath();ctx.moveTo(sx(v),m.t);ctx.lineTo(sx(v),m.t+H);ctx.stroke();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(tk(v),sx(v),m.t+H+15)});
+  if(!o.noY)ticks(yr[0],yr[1],5).forEach(function(v){ctx.beginPath();ctx.moveTo(m.l,sy(v));ctx.lineTo(m.l+W,sy(v));ctx.stroke();ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(tk(v),m.l-6,sy(v))});
+  ctx.strokeStyle=col.line;
+  if(xr[0]<0&&xr[1]>0&&o.zeroX){ctx.beginPath();ctx.moveTo(sx(0),m.t);ctx.lineTo(sx(0),m.t+H);ctx.stroke()}
+  if(yr[0]<0&&yr[1]>0&&!o.noY){ctx.beginPath();ctx.moveTo(m.l,sy(0));ctx.lineTo(m.l+W,sy(0));ctx.stroke()}
+  ctx.strokeRect(m.l,m.t,W,H);
+  ctx.fillStyle=col.muted;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(xl,m.l+W/2,dim.h-6);
+  if(yl){ctx.save();ctx.translate(12,m.t+H/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillText(yl,0,0);ctx.restore()}
+  return {sx:sx,sy:sy,m:m,W:W,H:H};
+}
+function clamp01(v){return Math.max(0,Math.min(1,v))}
+function dots(f,xs,ys,k,color){
+  ctx.save();ctx.beginPath();ctx.rect(f.m.l,f.m.t,f.W,f.H);ctx.clip();ctx.fillStyle=color||col.dot;ctx.globalAlpha=.5;
+  for(var i=0;i<k;i++){ctx.beginPath();ctx.arc(f.sx(xs[i]),f.sy(ys[i]),3,0,6.2832);ctx.fill()}
+  ctx.restore();
+}
+function regLine(f,xr,mx,my,slope,color,p,tri,label){
+  var y=function(x){return my+slope*(x-mx)};
+  ctx.save();ctx.beginPath();ctx.rect(f.m.l,f.m.t,f.W,f.H);ctx.clip();
+  if(p>0){var xe=xr[0]+(xr[1]-xr[0])*p;ctx.strokeStyle=color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(f.sx(xr[0]),f.sy(y(xr[0])));ctx.lineTo(f.sx(xe),f.sy(y(xe)));ctx.stroke()}
+  if(tri>0){
+    var x0=0,x1=1,y0=y(x0),y1=y(x1);
+    ctx.lineWidth=2;ctx.strokeStyle=color;ctx.setLineDash([5,4]);
+    ctx.beginPath();ctx.moveTo(f.sx(x0),f.sy(y0));ctx.lineTo(f.sx(x0+(x1-x0)*clamp01(tri*2)),f.sy(y0));ctx.stroke();
+    ctx.setLineDash([]);ctx.lineWidth=4;
+    if(tri>.5){ctx.beginPath();ctx.moveTo(f.sx(x1),f.sy(y0));ctx.lineTo(f.sx(x1),f.sy(y0+(y1-y0)*clamp01((tri-.5)*2)));ctx.stroke()}
+  }
+  ctx.restore();
+  if(tri>.9){
+    ctx.font='600 13px '+FONT;ctx.fillStyle=color;ctx.textAlign='left';ctx.textBaseline='middle';
+    ctx.fillText(label,f.sx(1)+8,f.sy((y(0)+y(1))/2));
+    ctx.font='11px '+FONT;ctx.fillStyle=col.muted;ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('1 unit',f.sx(.5),f.sy(y(0))+4);
+  }
+}
+function ease(t){return 1-Math.pow(1-t,3)}
+
+function drawScatterStep(t,xs,ys,xr,yr,xl,yl,mx,my,slope,color,label,showDots){
+  var f=frame(xr,yr,xl,yl,{zeroX:true});
+  dots(f,xs,ys,showDots,col.dot);
+  regLine(f,xr,mx,my,slope,color,clamp01((t-.15)/.6),clamp01((t-.75)/.25),label);
+}
+function drawBars(t){
+  var an=state.an,vals=[an.c,an.cp,an.ind],names=['Total c','Direct c′','Indirect a×b'],cols=[col.total,col.d,col.i];
+  var lo=Math.min(0,vals[0],vals[1],vals[2]),hi=Math.max(0,vals[0],vals[1],vals[2]),sp=(hi-lo)||1;lo-=sp*.18;hi+=sp*.18;
+  var L=112,R=16,T=18,H=dim.h-T-70,W=dim.w-L-R,sx=function(v){return L+(v-lo)/(hi-lo)*W},rh=H/3;
+  ctx.font='11px '+FONT;ctx.fillStyle=col.muted;ctx.strokeStyle=col.grid;ctx.lineWidth=1;
+  ticks(lo,hi,6).forEach(function(v){ctx.beginPath();ctx.moveTo(sx(v),T);ctx.lineTo(sx(v),T+H);ctx.stroke();ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText(tk(v),sx(v),T+H+15)});
+  ctx.strokeStyle=col.line;ctx.beginPath();ctx.moveTo(sx(0),T);ctx.lineTo(sx(0),T+H);ctx.stroke();
+  for(var i=0;i<3;i++){
+    var p=ease(clamp01((t-i*.2)/.5)),y=T+i*rh+rh*.2,h=rh*.6,x1=sx(vals[i]*p);
+    ctx.fillStyle=cols[i];ctx.globalAlpha=.9;ctx.fillRect(Math.min(sx(0),x1),y,Math.abs(x1-sx(0)),h);ctx.globalAlpha=1;
+    ctx.font='600 13px '+FONT;ctx.fillStyle=col.fg;ctx.textAlign='right';ctx.textBaseline='middle';ctx.fillText(names[i],L-10,y+h/2);
+    ctx.font='600 12px '+FONT;ctx.textAlign=vals[i]>=0?'left':'right';ctx.fillText(fmt(vals[i],3),x1+(vals[i]>=0?6:-6),y+h/2);
+  }
+  if(t>.85){
+    ctx.globalAlpha=clamp01((t-.85)/.15);ctx.font='600 15px '+FONT;ctx.fillStyle=col.fg;ctx.textAlign='center';ctx.textBaseline='alphabetic';
+    ctx.fillText(fmt(an.c,3)+'  =  '+fmt(an.cp,3)+'  +  '+fmt(an.ind,3),dim.w/2,dim.h-26);
+    ctx.font='11.5px '+FONT;ctx.fillStyle=col.muted;ctx.fillText('c  =  c′  +  a×b   (rounded to 3 decimals)',dim.w/2,dim.h-8);ctx.globalAlpha=1;
+  }
+}
+function revealedCount(t){return Math.min(NB,Math.max(1,Math.floor(Math.exp(Math.log(NB+1)*t)-1)))}
+function drawHist(t,final){
+  var an=state.an,B=state.boot;if(!B)return;
+  var k=final?NB:revealedCount(t),lo=B.lo,hi=B.hi,nb=B.nb,counts=new Int32Array(nb),j,v=B.ind;
+  for(j=0;j<k;j++)counts[Math.min(nb-1,Math.floor((v[j]-lo)/(hi-lo)*nb))]++;
+  var f=frame([lo,hi],[0,B.max],'Indirect effect a×b in each resample','Resamples');
+  var cl=null;
+  if(k>=40){var part=Float64Array.from(v.subarray(0,k)).sort();cl=[quant(part,.025),quant(part,.975)]}
+  var bw=(hi-lo)/nb;
+  for(j=0;j<nb;j++){
+    var x0=f.sx(lo+j*bw),x1=f.sx(lo+(j+1)*bw),y=f.sy(counts[j]),mid=lo+(j+.5)*bw,inside=cl&&mid>=cl[0]&&mid<=cl[1];
+    ctx.fillStyle=col.i;ctx.globalAlpha=cl?(inside?.9:.3):.6;ctx.fillRect(x0+.5,y,Math.max(1,x1-x0-1),f.sy(0)-y);
+  }
+  ctx.globalAlpha=1;
+  // zero line
+  if(lo<0&&hi>0){ctx.strokeStyle=col.fg;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(f.sx(0),f.m.t);ctx.lineTo(f.sx(0),f.m.t+f.H);ctx.stroke();ctx.setLineDash([]);
+    ctx.font='600 11px '+FONT;ctx.fillStyle=col.fg;ctx.textAlign='center';ctx.textBaseline='alphabetic';ctx.fillText('0 = no indirect effect',f.sx(0),f.m.t+f.H-6)}
+  // observed estimate
+  ctx.strokeStyle=col.d;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(f.sx(an.ind),f.m.t+22);ctx.lineTo(f.sx(an.ind),f.m.t+f.H);ctx.stroke();
+  // latest marker
+  if(k<=60&&!final){ctx.fillStyle=col.fg;ctx.beginPath();var lx=f.sx(v[k-1]);ctx.moveTo(lx,f.m.t+16);ctx.lineTo(lx-5,f.m.t+6);ctx.lineTo(lx+5,f.m.t+6);ctx.closePath();ctx.fill()}
+  if(cl){
+    var yy=f.m.t+12;ctx.strokeStyle=col.i;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(f.sx(cl[0]),yy);ctx.lineTo(f.sx(cl[1]),yy);ctx.stroke();
+    ctx.lineWidth=2;[cl[0],cl[1]].forEach(function(c){ctx.beginPath();ctx.moveTo(f.sx(c),yy-5);ctx.lineTo(f.sx(c),yy+5);ctx.stroke()});
+    var excl=cl[0]>0||cl[1]<0;ctx.font='600 12px '+FONT;ctx.textBaseline='alphabetic';
+    var right=f.sx(cl[1])+10<dim.w-170;ctx.textAlign=right?'left':'right';ctx.fillStyle=excl?col.ok:col.no;
+    ctx.fillText((excl?'Excludes 0':'Includes 0')+'  ['+fmt(cl[0],3)+', '+fmt(cl[1],3)+']',right?f.sx(cl[1])+10:f.sx(cl[0])-10,yy+4);
+  }
+  ctx.font='11px '+FONT;ctx.fillStyle=col.d;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  var lab1='your sample: '+fmt(an.ind,3),lx2=f.sx(an.ind)+6;if(lx2>dim.w-120){ctx.textAlign='right';lx2=f.sx(an.ind)-6}
+  ctx.fillText(lab1,lx2,f.m.t+36);
+  var live=$('#live');
+  if(live){
+    var last=k-1;
+    var h='<b>Resample '+k.toLocaleString()+' of '+NB.toLocaleString()+'</b><br>a* = '+fmt(B.as[last],2)+', b* = '+fmt(B.bs[last],2)+' → a*×b* = '+fmt(v[last],3);
+    h+='<br>'+(cl?'95% interval so far: ['+fmt(cl[0],3)+', '+fmt(cl[1],3)+']':'Collecting resamples…');
+    live.innerHTML=h;
+  }
+}
+function drawForest(){
+  var r=state.rep;if(!r)return;
+  var s=SC[state.scn],xr=[-.5,.8],f=frame(xr,[0,NS],'Indirect effect a×b (95% interval)','Each line is one new sample',{noY:true,zeroX:true});
+  var rh=f.H/NS,ti=s.a*s.b,clip=function(v){return Math.max(xr[0],Math.min(xr[1],v))};
+  ctx.strokeStyle=col.fg;ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.beginPath();ctx.moveTo(f.sx(0),f.m.t);ctx.lineTo(f.sx(0),f.m.t+f.H);ctx.stroke();ctx.setLineDash([]);
+  if(ti!==0){ctx.strokeStyle=col.d;ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(f.sx(ti),f.m.t);ctx.lineTo(f.sx(ti),f.m.t+f.H);ctx.stroke()}
+  for(var i=0;i<r.res.length;i++){
+    var q=r.res[i],y=f.m.t+(i+.5)*rh;
+    ctx.strokeStyle=q.ex?col.i:col.muted;ctx.globalAlpha=q.ex?.95:.8;ctx.lineWidth=Math.max(1,rh*.55);
+    ctx.beginPath();ctx.moveTo(f.sx(clip(q.lo)),y);ctx.lineTo(f.sx(clip(q.hi)),y);ctx.stroke();
+  }
+  ctx.globalAlpha=1;ctx.font='11px '+FONT;ctx.textBaseline='alphabetic';ctx.textAlign='left';
+  ctx.fillStyle=col.fg;ctx.fillText('0',f.sx(0)+4,f.m.t+f.H-5);
+  if(ti!==0){ctx.fillStyle=col.d;ctx.fillText('true a×b = '+fmt(ti,3),f.sx(ti)+5,f.m.t+f.H-18)}
+  ctx.textAlign='right';ctx.fillStyle=col.i;ctx.fillText('excludes 0',dim.w-18,f.m.t+14);ctx.fillStyle=col.muted;ctx.fillText('includes 0',dim.w-18,f.m.t+28);
+}
+function capFor(st){
+  return ['','Each dot is one simulated person.','Line of best fit for Y on X. Its slope is c.','Line of best fit for M on X. Its slope is a.',
+    'Y and M after X’s influence is removed from both. The slope is b.','Total effect = direct effect + indirect effect.',
+    'Each bar counts the resamples whose a×b fell in that range.','Solid bars are the middle 95% of resamples. The dashed line marks 0.','Each line is the 95% interval from one new sample.'][st];
+}
+
+var tNow=0,t0=0,dur=1,raf=0,timer=0;
+function draw(){
+  var st=state.step;if(st===0)return;
+  readColors();ctx.clearRect(0,0,dim.w,dim.h);
+  var d=state.data,an=state.an,R=state.res,n=state.n,t=ease(tNow);
+  if(st===1){var f=frame(R.rX,R.rY,'X  Study time (standardized units)','Y  Exam score');dots(f,d.X,d.Y,Math.ceil(clamp01(tNow)*n),col.dot)}
+  else if(st===2)drawScatterStep(tNow,d.X,d.Y,R.rX,R.rY,'X  Study time','Y  Exam score',an.S.mx,an.S.my,an.c,col.total,'c = '+fmt(an.c),n);
+  else if(st===3)drawScatterStep(tNow,d.X,d.M,R.rX,R.rM,'X  Study time','M  Understanding',an.S.mx,an.S.mm,an.a,col.a,'a = '+fmt(an.a),n);
+  else if(st===4)drawScatterStep(tNow,R.rm,R.ry,R.rRm,R.rRy,'M after removing X','Y after removing X',0,0,an.b,col.b,'b = '+fmt(an.b),n);
+  else if(st===5)drawBars(tNow);
+  else if(st===6)drawHist(tNow,false);
+  else if(st===7)drawHist(1,true);
+  else if(st===8)drawForest();
+}
+function startAnim(d){
+  cancelAnimationFrame(raf);dur=d;t0=performance.now();tNow=(reduced||d===0)?1:0;
+  if(tNow===1){draw();animDone();return}
+  var loop=function(now){tNow=Math.min(1,(now-t0)/dur);draw();if(tNow<1)raf=requestAnimationFrame(loop);else animDone()};
+  raf=requestAnimationFrame(loop);
+}
+function animDone(){schedule()}
+function schedule(){
+  clearTimeout(timer);if(!state.playing)return;
+  if(state.step>=8){state.playing=false;updateBtns();return}
+  timer=setTimeout(function(){go(state.step+1)},3600);
+}
+
+/* ---------- repeated studies ---------- */
+function runStudies(){
+  var tok=++state.repTok,r={res:[],done:false};state.rep=r;
+  var s=SC[state.scn],n=state.n;
+  var step=function(){
+    if(state.repTok!==tok)return;
+    var t0=performance.now();
+    while(r.res.length<NS&&performance.now()-t0<22){
+      var i=r.res.length,d=makeData(state.seed*1000+i+17,n,s),est=coefs(sums(d.X,d.M,d.Y)),rg=rng(state.seed*31+i),idx=new Int32Array(n),vals=new Float64Array(NSB),j,q,S,k;
+      for(j=0;j<NSB;j++){for(q=0;q<n;q++)idx[q]=(rg()*n)|0;S=sums(d.X,d.M,d.Y,idx);k=coefs(S);vals[j]=k.a*k.b}
+      vals.sort();var lo=quant(vals,.025),hi=quant(vals,.975);
+      r.res.push({est:est.a*est.b,lo:lo,hi:hi,ex:lo>0||hi<0});
+    }
+    r.done=r.res.length>=NS;
+    var el=$('#repStats');if(el)el.innerHTML=repHTML();
+    if(state.step===8){readColors();ctx.clearRect(0,0,dim.w,dim.h);drawForest()}
+    if(!r.done)setTimeout(step,0);
+  };
+  step();
+}
+
+/* ---------- navigation ---------- */
+function updateBtns(){
+  $('#prev').disabled=state.step===0;$('#next').disabled=state.step===8;
+  $('#play').textContent=state.playing?'Pause':'Play';
+  var ds=document.querySelectorAll('.dot');
+  for(var i=0;i<ds.length;i++){ds[i].className='dot'+(i===state.step?' on':i<state.step?' done':'')}
+}
+function render(){
+  var st=state.step;
+  $('#stepTitle').textContent=TITLES[st];
+  $('#stepText').innerHTML=textFor(st);
+  var th=thinkFor(st),te=$('#think');
+  if(th){te.hidden=false;te.innerHTML='<b>Pause and predict.</b> '+th}else te.hidden=true;
+  if(st===6&&!state.boot)runBoot();
+  if(st===7&&!state.boot)runBoot();
+  $('#numbers').innerHTML=numbersFor(st);
+  $('#plotCard').hidden=st===0;$('#plotCap').textContent=capFor(st);
+  updateBtns();drawDiagram();
+  if(st>0)fit();
+  if(st===8){
+    $('#repStats').innerHTML=repHTML();
+    if(!state.rep)runStudies();
+    readColors();ctx.clearRect(0,0,dim.w,dim.h);drawForest();clearTimeout(timer);state.playing=false;updateBtns();
+  }else startAnim(DUR[st]);
+}
+function go(i){state.step=Math.max(0,Math.min(8,i));render()}
+function reset(keepSeed){
+  if(!keepSeed)state.seed=Math.floor(Math.random()*100000)+1;
+  generate();render();
+}
+
+/* ---------- wiring ---------- */
+(function(){
+  var h='';for(var i=0;i<9;i++)h+='<button class="dot" type="button" data-i="'+i+'" aria-label="Go to '+TITLES[i].replace(/"/g,'')+'" title="'+TITLES[i]+'">'+i+'</button>';
+  $('#dots').innerHTML=h;
+})();
+$('#dots').addEventListener('click',function(e){var b=e.target.closest('.dot');if(b)go(+b.getAttribute('data-i'))});
+$('#next').addEventListener('click',function(){go(state.step+1)});
+$('#prev').addEventListener('click',function(){go(state.step-1)});
+$('#replay').addEventListener('click',function(){if(state.step===8){runStudies()}else if(state.step>0){startAnim(DUR[state.step])}});
+$('#play').addEventListener('click',function(){state.playing=!state.playing;updateBtns();if(state.playing){if(state.step>=8)go(0);else schedule()}else clearTimeout(timer)});
+$('#numbers').addEventListener('click',function(e){if(e.target&&e.target.id==='runAgain')runStudies()});
+$('#scenario').addEventListener('change',function(e){state.scn=e.target.value;reset(true)});
+$('#n').addEventListener('input',function(e){$('#nOut').textContent=e.target.value});
+$('#n').addEventListener('change',function(e){state.n=+e.target.value;reset(true)});
+$('#newSample').addEventListener('click',function(){reset(false)});
+$('#reveal').addEventListener('change',function(){drawDiagram();if(state.step===7)$('#numbers').innerHTML=numbersFor(7)});
+document.addEventListener('keydown',function(e){
+  var tg=e.target&&e.target.tagName;if(tg==='INPUT'||tg==='SELECT')return;
+  if(e.key==='ArrowRight')go(state.step+1);else if(e.key==='ArrowLeft')go(state.step-1);
+});
+window.addEventListener('resize',function(){if(state.step>0){fit();draw();if(state.step===8){readColors();ctx.clearRect(0,0,dim.w,dim.h);drawForest()}}});
+if(window.matchMedia){
+  var mq=window.matchMedia('(prefers-color-scheme: dark)'),cb=function(){drawDiagram();if(state.step>0){if(state.step===8){readColors();ctx.clearRect(0,0,dim.w,dim.h);drawForest()}else draw()}};
+  if(mq.addEventListener)mq.addEventListener('change',cb);
+}
+
+generate();render();
+})();
+</script>
+
+</body></html>
